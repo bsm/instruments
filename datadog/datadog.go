@@ -14,6 +14,9 @@ import (
 // DefaultURL is the default series URL the client sends metric data to
 const DefaultURL = "https://app.datadoghq.com/api/v1/series"
 
+// retriesCount holds the max number of retries when POST-ing metrics.
+const retriesCount = 3
+
 type Client struct {
 	apiKey string
 	client *http.Client
@@ -61,14 +64,15 @@ func (c *Client) Post(metrics []Metric) error {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Content-Encoding", "deflate")
 
-	for i := 1; i < 4; i++ {
-		code, err := c.post(req)
-		if err == nil || code == http.StatusForbidden || code == http.StatusUnauthorized {
+	for i := 1; i <= retriesCount; i++ {
+		var code int
+		code, err = c.post(req)
+		if err == nil || code < http.StatusInternalServerError { // only server errors are retried, 4xx are "fatal"
 			return err
 		}
 		time.Sleep(time.Duration(i) * 200 * time.Millisecond)
 	}
-	return nil
+	return err
 }
 
 func (c *Client) post(req *http.Request) (int, error) {
