@@ -26,17 +26,17 @@ type Reporter struct {
 }
 
 // New creates a new reporter.
-func New(apiKey string) *Reporter {
+func New(apiKey string, opts ...Option) *Reporter {
 	hostname, _ := os.Hostname()
 
 	return &Reporter{
-		Client:   NewClient(apiKey),
+		Client:   NewClient(apiKey, opts...),
 		Hostname: hostname,
 		refs:     make(map[string]int8),
 	}
 }
 
-// Prepare implements instruments.Reporter
+// Prep implements instruments.Reporter
 func (r *Reporter) Prep() error {
 	r.timestamp = unixTime()
 	return nil
