@@ -11,11 +11,16 @@ import (
 	"time"
 )
 
+// Metric represents a flushed metric
+type Metric struct {
+	Name   string           `json:"metric"`
+	Points [][2]interface{} `json:"points"`
+	Host   string           `json:"host,omitempty"`
+	Tags   []string         `json:"tags,omitempty"`
+}
+
 // DefaultURL is the default series URL the client sends metric data to
 const DefaultURL = "https://app.datadoghq.com/api/v1/series"
-
-// retriesCount holds the max number of retries when POST-ing metrics.
-const retriesCount = 3
 
 type Client struct {
 	apiKey string
@@ -25,7 +30,9 @@ type Client struct {
 	// Default: DefaultURL
 	URL string
 
-	bfs, zws sync.Pool
+	// Disables zlib payload compression when
+	// POSTing data to the API.
+	DisableCompression bool
 }
 
 // NewClient creates a new API client.
@@ -41,56 +48,67 @@ func NewClient(apiKey string) *Client {
 func (c *Client) Post(metrics []Metric) error {
 	series := struct {
 		Series []Metric `json:"series,omitempty"`
-	}{metrics}
+	}{Series: metrics}
 
-	buf := c.buffer()
-	defer c.bfs.Put(buf)
+	buf := fetchBuffer()
+	defer bufferPool.Put(buf)
 
-	bfz := c.zWriter(buf)
-	defer c.zws.Put(bfz)
-	defer bfz.Close()
+	var dst io.Writer = buf
+	if !c.DisableCompression {
+		zlw := fetcZlibWriter(buf)
+		defer zlibWriterPool.Put(zlw)
+		defer zlw.Close()
 
-	if err := json.NewEncoder(bfz).Encode(&series); err != nil {
-		return err
-	}
-	if err := bfz.Flush(); err != nil {
-		return err
+		dst = zlw
 	}
 
-	req, err := http.NewRequest("POST", c.URL+"?api_key="+c.apiKey, buf)
-	if err != nil {
+	if err := json.NewEncoder(dst).Encode(&series); err != nil {
 		return err
 	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Content-Encoding", "deflate")
-
-	for i := 1; i <= retriesCount; i++ {
-		var code int
-		code, err = c.post(req)
-		if err == nil || code < http.StatusInternalServerError { // only server errors are retried, 4xx are "fatal"
+	if c, ok := dst.(io.Closer); ok {
+		if err := c.Close(); err != nil {
 			return err
 		}
-		time.Sleep(time.Duration(i) * 200 * time.Millisecond)
 	}
-	return err
+	return c.post(buf.Bytes(), 0)
 }
 
-func (c *Client) post(req *http.Request) (int, error) {
+func (c *Client) post(data []byte, retries int) error {
+	req, err := http.NewRequest("POST", c.URL+"?api_key="+c.apiKey, bytes.NewReader(data))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if !c.DisableCompression {
+		req.Header.Set("Content-Encoding", "deflate")
+	}
+
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return 0, err
+		return err
 	}
 	defer resp.Body.Close()
 
-	switch resp.StatusCode {
-	case http.StatusOK, http.StatusCreated, http.StatusAccepted, http.StatusNoContent:
-		return resp.StatusCode, nil
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		return nil
+	} else if retries <= 3 && resp.StatusCode >= 500 {
+		time.Sleep(time.Duration(retries+1) * 200 * time.Second)
+		return c.post(data, retries+1)
+	} else {
+		return fmt.Errorf("datadog: bad API response: %s", resp.Status)
 	}
-	return resp.StatusCode, fmt.Errorf("datadog: bad API response: %s", resp.Status)
 }
 
-func (c *Client) buffer() *bytes.Buffer {
-	if v := c.bfs.Get(); v != nil {
+// --------------------------------------------------------------------
+
+var (
+	bufferPool     sync.Pool
+	zlibWriterPool sync.Pool
+)
+
+func fetchBuffer() *bytes.Buffer {
+	if v := bufferPool.Get(); v != nil {
 		b := v.(*bytes.Buffer)
 		b.Reset()
 		return b
@@ -98,19 +116,11 @@ func (c *Client) buffer() *bytes.Buffer {
 	return new(bytes.Buffer)
 }
 
-func (c *Client) zWriter(w io.Writer) *zlib.Writer {
-	if v := c.zws.Get(); v != nil {
+func fetcZlibWriter(w io.Writer) *zlib.Writer {
+	if v := zlibWriterPool.Get(); v != nil {
 		z := v.(*zlib.Writer)
 		z.Reset(w)
 		return z
 	}
 	return zlib.NewWriter(w)
-}
-
-// Metric represents a flushed metric
-type Metric struct {
-	Name   string           `json:"metric"`
-	Points [][2]interface{} `json:"points"`
-	Host   string           `json:"host,omitempty"`
-	Tags   []string         `json:"tags,omitempty"`
 }
