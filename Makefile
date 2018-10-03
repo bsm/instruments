@@ -10,4 +10,7 @@ vet:
 	go vet ./...
 
 bench:
-	go test ./... -test.run=NONE -test.bench=. -test.benchmem
+	go test ./... -run=NONE -bench=. -benchmem
+
+bench-race:
+	go test ./... -run=NONE -bench=. -race
