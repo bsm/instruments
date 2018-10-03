@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -38,7 +39,17 @@ type Client struct {
 // NewClient creates a new API client.
 func NewClient(apiKey string) *Client {
 	return &Client{
-		client: &http.Client{},
+		client: &http.Client{Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+			DialContext: (&net.Dialer{
+				Timeout:   30 * time.Second,
+				KeepAlive: 30 * time.Second,
+				DualStack: true,
+			}).DialContext,
+			DisableKeepAlives:     true,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+		}},
 		apiKey: apiKey,
 		URL:    DefaultURL,
 	}
