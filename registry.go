@@ -32,7 +32,7 @@ type Registry struct {
 // accummulated data and release all resources.
 func New(flushInterval time.Duration, prefix string, tags ...string) *Registry {
 	if flushInterval < time.Second {
-		flushInterval = time.Minute
+		flushInterval = 30 * time.Second
 	}
 
 	r := &Registry{
