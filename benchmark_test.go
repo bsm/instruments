@@ -12,7 +12,7 @@ func BenchmarkCounter(b *testing.B) {
 	c := instruments.NewCounter()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		c.Update(float64(i))
+		c.Update(int64(i))
 		c.Snapshot()
 	}
 }

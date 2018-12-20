@@ -12,9 +12,20 @@ import (
 	"time"
 )
 
+// MetricType defines the type of the metric
+type MetricType string
+
+// Metric types
+const (
+	MetricCount MetricType = "count"
+	MetricGauge MetricType = "gauge"
+	MetricRate  MetricType = "rate"
+)
+
 // Metric represents a flushed metric
 type Metric struct {
 	Name   string           `json:"metric"`
+	Type   MetricType       `json:"type,omitempty"`
 	Points [][2]interface{} `json:"points"`
 	Host   string           `json:"host,omitempty"`
 	Tags   []string         `json:"tags,omitempty"`
@@ -23,6 +34,7 @@ type Metric struct {
 // DefaultURL is the default series URL the client sends metric data to
 const DefaultURL = "https://app.datadoghq.com/api/v1/series"
 
+// Client abstracts a datadog API connection.
 type Client struct {
 	apiKey string
 	client *http.Client

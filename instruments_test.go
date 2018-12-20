@@ -28,13 +28,13 @@ var _ = ginkgo.Describe("Instruments", func() {
 		c := NewCounter()
 		c.Update(7)
 		c.Update(12)
-		Expect(c.Snapshot()).To(Equal(19.0))
-		Expect(c.Snapshot()).To(Equal(0.0))
+		Expect(c.Snapshot()).To(Equal(int64(19)))
+		Expect(c.Snapshot()).To(Equal(int64(0)))
 
 		for i := 1; i < 100; i++ {
-			c.Update(float64(i))
+			c.Update(int64(i))
 		}
-		Expect(c.Snapshot()).To(Equal(4950.0))
+		Expect(c.Snapshot()).To(Equal(int64(4950)))
 	})
 
 	ginkgo.It("should update gauges", func() {

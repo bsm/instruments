@@ -30,6 +30,11 @@ import (
 	"github.com/bsm/histogram"
 )
 
+// Counting represents a counting instrument.
+type Counting interface {
+	Snapshot() int64
+}
+
 // Discrete represents a single value instrument.
 type Discrete interface {
 	Snapshot() float64
@@ -44,7 +49,7 @@ type Sample interface {
 
 // Counter holds a counter that can be incremented or decremented.
 type Counter struct {
-	count float64
+	count int64
 }
 
 // NewCounter creates a new counter instrument.
@@ -52,14 +57,16 @@ func NewCounter() *Counter {
 	return new(Counter)
 }
 
-// Update adds v to the counter.
-func (c *Counter) Update(v float64) {
-	addFloat64(&c.count, v)
+// Update increments counter by v.
+func (c *Counter) Update(v int64) {
+	atomic.AddInt64(&c.count, v)
 }
 
 // Snapshot returns the current value and reset the counter.
-func (c *Counter) Snapshot() float64 {
-	return swapFloat64(&c.count, 0)
+func (c *Counter) Snapshot() int64 {
+	n := atomic.LoadInt64(&c.count)
+	atomic.AddInt64(&c.count, -n)
+	return n
 }
 
 // --------------------------------------------------------------------
@@ -68,7 +75,7 @@ func (c *Counter) Snapshot() float64 {
 type Rate struct {
 	time  int64
 	unit  float64
-	count Counter
+	count float64
 }
 
 // NewRate creates a new rate instrument.
@@ -86,7 +93,7 @@ func NewRateScale(d time.Duration) *Rate {
 
 // Update updates rate value.
 func (r *Rate) Update(v float64) {
-	r.count.Update(v)
+	addFloat64(&r.count, v)
 }
 
 // Snapshot returns the number of values per second since the last snapshot,
@@ -94,7 +101,8 @@ func (r *Rate) Update(v float64) {
 func (r *Rate) Snapshot() float64 {
 	now := time.Now().UnixNano()
 	dur := time.Duration(now - atomic.SwapInt64(&r.time, now))
-	return r.count.Snapshot() / dur.Seconds() * r.unit
+	val := swapFloat64(&r.count, 0)
+	return val / dur.Seconds() * r.unit
 }
 
 // --------------------------------------------------------------------

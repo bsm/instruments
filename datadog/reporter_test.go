@@ -36,16 +36,16 @@ var _ = ginkgo.Describe("Reporter", func() {
 
 		Expect(last.Body.Bytes()).To(MatchJSON(`{
 			"series":[
-				{"metric":"cnt","points":[[1414141414,0]],"tags":["a","b"],"host":"test.host"},
-				{"metric":"cnt","points":[[1414141414,1]],"tags":["a","c"],"host":"test.host"},
-				{"metric":"cnt","points":[[1414141414,2]],"tags":["b","c"],"host":"test.host"}
+				{"metric":"cnt","type":"gauge","points":[[1414141414,0]],"tags":["a","b"],"host":"test.host"},
+				{"metric":"cnt","type":"gauge","points":[[1414141414,1]],"tags":["a","c"],"host":"test.host"},
+				{"metric":"cnt","type":"gauge","points":[[1414141414,2]],"tags":["b","c"],"host":"test.host"}
 			]
 		}`))
 	})
 
 	ginkgo.It("should expire old metrics after flush", func() {
 		Expect(subject.Prep()).To(Succeed())
-		Expect(subject.Discrete("cnt1", []string{"a"}, 3)).To(Succeed())
+		Expect(subject.Counting("cnt1", []string{"a"}, 3)).To(Succeed())
 		Expect(subject.Discrete("cnt2", []string{"a"}, 7)).To(Succeed())
 		Expect(subject.Sample("tmr1", []string{"a"}, mockDistribution{})).To(Succeed())
 		Expect(subject.Flush()).To(Succeed())
@@ -53,24 +53,24 @@ var _ = ginkgo.Describe("Reporter", func() {
 		// after 1st flush
 		Expect(last.Body.Bytes()).To(MatchJSON(`{
 			"series":[
-				{"metric":"cnt1","points":[[1414141414,3]],"tags":["a"],"host":"test.host"},
-				{"metric":"cnt2","points":[[1414141414,7]],"tags":["a"],"host":"test.host"},
-				{"metric":"tmr1.p95","points":[[1414141414,100.1]],"tags":["a"],"host":"test.host"},
-				{"metric":"tmr1.p99","points":[[1414141414,100.1]],"tags":["a"],"host":"test.host"}
+				{"metric":"cnt1","type":"count","points":[[1414141414,3]],"tags":["a"],"host":"test.host"},
+				{"metric":"cnt2","type":"gauge","points":[[1414141414,7]],"tags":["a"],"host":"test.host"},
+				{"metric":"tmr1.p95","type":"gauge","points":[[1414141414,100.1]],"tags":["a"],"host":"test.host"},
+				{"metric":"tmr1.p99","type":"gauge","points":[[1414141414,100.1]],"tags":["a"],"host":"test.host"}
 			]
 		}`))
 
 		Expect(subject.Prep()).To(Succeed())
-		Expect(subject.Discrete("cnt1", []string{"a"}, 2)).To(Succeed())
+		Expect(subject.Counting("cnt1", []string{"a"}, 2)).To(Succeed())
 		Expect(subject.Discrete("cnt2", []string{"b"}, 5)).To(Succeed())
 		Expect(subject.Flush()).To(Succeed())
 
 		// after 2nd flush
 		Expect(last.Body.Bytes()).To(MatchJSON(`{
 			"series":[
-				{"metric":"cnt1","points":[[1414141414,2]],"tags":["a"],"host":"test.host"},
-				{"metric":"cnt2","points":[[1414141414,5]],"tags":["b"],"host":"test.host"},
-				{"metric":"cnt2","points":[[1414141414,0]],"tags":["a"],"host":"test.host"}
+				{"metric":"cnt1","type":"count","points":[[1414141414,2]],"tags":["a"],"host":"test.host"},
+				{"metric":"cnt2","type":"gauge","points":[[1414141414,5]],"tags":["b"],"host":"test.host"},
+				{"metric":"cnt2","type":"gauge","points":[[1414141414,0]],"tags":["a"],"host":"test.host"}
 			]
 		}`))
 
@@ -81,8 +81,8 @@ var _ = ginkgo.Describe("Reporter", func() {
 		// after 3nd flush
 		Expect(last.Body.Bytes()).To(MatchJSON(`{
 			"series":[
-				{"metric":"cnt2","points":[[1414141414,9]],"tags":["b"],"host":"test.host"},
-				{"metric":"cnt1","points":[[1414141414,0]],"tags":["a"],"host":"test.host"}
+				{"metric":"cnt2","type":"gauge","points":[[1414141414,9]],"tags":["b"],"host":"test.host"},
+				{"metric":"cnt1","type":"count","points":[[1414141414,0]],"tags":["a"],"host":"test.host"}
 			]
 		}`))
 
@@ -92,7 +92,7 @@ var _ = ginkgo.Describe("Reporter", func() {
 		// after 4th flush
 		Expect(last.Body.Bytes()).To(MatchJSON(`{
 			"series":[
-				{"metric":"cnt2","points":[[1414141414,0]],"tags":["b"],"host":"test.host"}
+				{"metric":"cnt2","type":"gauge","points":[[1414141414,0]],"tags":["b"],"host":"test.host"}
 			]
 		}`))
 	})

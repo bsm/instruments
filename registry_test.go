@@ -161,6 +161,11 @@ func (m *mockReporter) Flush() error {
 	return nil
 }
 
+func (m *mockReporter) Counting(name string, tags []string, val int64) error {
+	m.Discrete(name, tags, float64(val))
+	return nil
+}
+
 func (m *mockReporter) Discrete(name string, tags []string, val float64) error {
 	m.Data = append(m.Data, mockReported{
 		Name:  name,

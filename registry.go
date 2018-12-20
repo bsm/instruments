@@ -75,7 +75,7 @@ func (r *Registry) Get(name string, tags []string) interface{} {
 // Register registers a new instrument.
 func (r *Registry) Register(name string, tags []string, v interface{}) {
 	switch v.(type) {
-	case Discrete, Sample:
+	case Counting, Discrete, Sample:
 		key := MetricID(name, tags)
 		r.mutex.Lock()
 		r.instruments[key] = v
@@ -108,7 +108,7 @@ func (r *Registry) Fetch(name string, tags []string, factory func() interface{})
 
 	if v, ok = r.instruments[key]; !ok {
 		switch v = factory(); v.(type) {
-		case Discrete, Sample:
+		case Counting, Discrete, Sample:
 			r.instruments[key] = v
 		}
 	}
@@ -148,6 +148,13 @@ func (r *Registry) Flush() error {
 		tags = append(tags, rtags...)
 
 		switch inst := val.(type) {
+		case Counting:
+			val := inst.Snapshot()
+			for _, rep := range reporters {
+				if err := rep.Counting(name, tags, val); err != nil {
+					return err
+				}
+			}
 		case Discrete:
 			val := inst.Snapshot()
 			for _, rep := range reporters {

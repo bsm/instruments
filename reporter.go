@@ -6,6 +6,8 @@ type Reporter interface {
 	// Prep is called at the beginning of each reporting cycle, which
 	// allows reporters to prepare for next data snapshot.
 	Prep() error
+	// Counting accepts an integer value with name and (sorted) tags
+	Counting(name string, tags []string, value int64) error
 	// Discrete accepts a numeric value with name and (sorted) tags
 	Discrete(name string, tags []string, value float64) error
 	// Sample accepts a sampled distribution with name and (sorted) tags

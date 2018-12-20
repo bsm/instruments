@@ -27,8 +27,15 @@ func New(logger Logger) *Reporter {
 	return &Reporter{logger: logger}
 }
 
-// Prepare implements instruments.Reporter
+// Prep implements instruments.Reporter
 func (r *Reporter) Prep() error { return nil }
+
+// Counting implements instruments.Reporter
+func (r *Reporter) Counting(name string, tags []string, val int64) error {
+	metric := fmt.Sprintf("%s|%s:val=%d", name, strings.Join(tags, ","), val)
+	r.metrics = append(r.metrics, metric)
+	return nil
+}
 
 // Discrete implements instruments.Reporter
 func (r *Reporter) Discrete(name string, tags []string, val float64) error {
