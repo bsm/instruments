@@ -33,13 +33,13 @@ var _ = ginkgo.Describe("Client", func() {
 
 	ginkgo.It("should post metrics", func() {
 		err := subject.Post([]Metric{
-			{Name: "m1", Points: [][2]interface{}{{1414141414, 27}}, Tags: []string{"a", "b"}},
-			{Name: "m2", Points: [][2]interface{}{{1414141415, 0.8}}, Tags: []string{"c"}},
+			{Name: "m1", Points: []Point{{T: 1414141414, V: 27}}, Tags: []string{"a", "b"}},
+			{Name: "m2", Points: []Point{{T: 1414141415, V: 0.8}}, Tags: []string{"c"}},
 		})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(last.Method).To(Equal("POST"))
 		Expect(last.URL.RawQuery).To(Equal("api_key=TEST_API_TOKEN"))
-		Expect(last.Body.Bytes()).To(MatchJSON(`{
+		Expect(last.Body.String()).To(MatchJSON(`{
 			"series": [
 				{"metric":"m1", "points":[[1414141414,27]],  "tags":["a","b"]},
 				{"metric":"m2", "points":[[1414141415,0.8]], "tags":["c"]}

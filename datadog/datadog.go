@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -24,11 +25,34 @@ const (
 
 // Metric represents a flushed metric
 type Metric struct {
-	Name   string           `json:"metric"`
-	Type   MetricType       `json:"type,omitempty"`
-	Points [][2]interface{} `json:"points"`
-	Host   string           `json:"host,omitempty"`
-	Tags   []string         `json:"tags,omitempty"`
+	Name   string     `json:"metric"`
+	Type   MetricType `json:"type,omitempty"`
+	Points []Point    `json:"points"`
+	Host   string     `json:"host,omitempty"`
+	Tags   []string   `json:"tags,omitempty"`
+}
+
+// Point represents a data point
+type Point struct {
+	T int64       // the timestamp
+	V interface{} // the value, may be a float64/int64/int
+}
+
+// MarshalJSON implements json.Marshaler.
+func (p Point) MarshalJSON() ([]byte, error) {
+	buf := make([]byte, 0, 30)
+	buf = append(buf, '[')
+	buf = strconv.AppendInt(buf, p.T, 10)
+	buf = append(buf, ',')
+	switch val := p.V.(type) {
+	case float64:
+		buf = strconv.AppendFloat(buf, val, 'f', 6, 64)
+	case int64:
+		buf = strconv.AppendInt(buf, val, 10)
+	case int:
+		buf = strconv.AppendInt(buf, int64(val), 10)
+	}
+	return append(buf, ']'), nil
 }
 
 // DefaultURL is the default series URL the client sends metric data to

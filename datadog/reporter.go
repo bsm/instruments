@@ -47,13 +47,13 @@ func (r *Reporter) Prep() error {
 	return nil
 }
 
-// Metric appends a new metric to the reporter. The value v must be either an
+// Appends a new metric to the reporter. The value v must be either an
 // int64 or float64, otherwise an error is returned
-func (r *Reporter) Metric(name string, typ MetricType, tags []string, v float32) {
+func (r *Reporter) metric(name string, typ MetricType, tags []string, v interface{}) {
 	r.metrics = append(r.metrics, Metric{
 		Name:   name,
 		Type:   typ,
-		Points: [][2]interface{}{[2]interface{}{r.timestamp, v}},
+		Points: []Point{{T: r.timestamp, V: v}},
 		Tags:   tags,
 		Host:   r.Hostname,
 	})
@@ -63,7 +63,7 @@ func (r *Reporter) Metric(name string, typ MetricType, tags []string, v float32)
 func (r *Reporter) Counting(name string, tags []string, val int64) error {
 	metricID := instruments.MetricID(name, tags)
 	r.refs[metricRef{ID: metricID, Type: MetricCount}] = 2
-	r.Metric(name, MetricCount, tags, float32(val))
+	r.metric(name, MetricCount, tags, val)
 	return nil
 }
 
@@ -71,14 +71,14 @@ func (r *Reporter) Counting(name string, tags []string, val int64) error {
 func (r *Reporter) Discrete(name string, tags []string, val float64) error {
 	metricID := instruments.MetricID(name, tags)
 	r.refs[metricRef{ID: metricID, Type: MetricGauge}] = 2
-	r.Metric(name, MetricGauge, tags, float32(val))
+	r.metric(name, MetricGauge, tags, val)
 	return nil
 }
 
 // Sample implements instruments.Reporter
 func (r *Reporter) Sample(name string, tags []string, dist instruments.Distribution) error {
-	r.Metric(name+".p95", MetricGauge, tags, float32(dist.Quantile(0.95)))
-	r.Metric(name+".p99", MetricGauge, tags, float32(dist.Quantile(0.99)))
+	r.metric(name+".p95", MetricGauge, tags, dist.Quantile(0.95))
+	r.metric(name+".p99", MetricGauge, tags, dist.Quantile(0.99))
 	return nil
 }
 
@@ -87,7 +87,7 @@ func (r *Reporter) Flush() error {
 	for ref := range r.refs {
 		if r.refs[ref]--; r.refs[ref] < 1 {
 			name, tags := instruments.SplitMetricID(ref.ID)
-			r.Metric(name, ref.Type, tags, 0)
+			r.metric(name, ref.Type, tags, 0)
 			delete(r.refs, ref)
 		}
 	}
