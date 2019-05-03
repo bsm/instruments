@@ -1,11 +1,14 @@
 module github.com/bsm/instruments
 
 require (
-	github.com/bsm/histogram v0.0.0-20181101123312-e563757ba11f
-	github.com/onsi/ginkgo v1.7.0
-	github.com/onsi/gomega v1.4.3
-	golang.org/x/net v0.0.0-20181217023233-e147a9138326 // indirect
-	golang.org/x/sync v0.0.0-20181108010431-42b317875d0f // indirect
-	golang.org/x/sys v0.0.0-20181217223516-dcdaa6325bcb // indirect
+	github.com/bsm/histogram v0.0.0-20190503142155-9ff1252a713d
+	github.com/golang/protobuf v1.3.1 // indirect
+	github.com/kr/pretty v0.1.0 // indirect
+	github.com/onsi/ginkgo v1.8.0
+	github.com/onsi/gomega v1.5.0
+	golang.org/x/net v0.0.0-20190502183928-7f726cade0ab // indirect
+	golang.org/x/sys v0.0.0-20190502175342-a43fa875dd82 // indirect
+	golang.org/x/text v0.3.2 // indirect
+	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	gopkg.in/yaml.v2 v2.2.2 // indirect
 )
