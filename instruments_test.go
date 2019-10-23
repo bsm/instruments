@@ -2,27 +2,32 @@ package instruments
 
 import (
 	"math/rand"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 )
 
 var _ = ginkgo.Describe("Instruments", func() {
+	updateInParallel := func(in interface{ Update(float64) }) {
+		var wg sync.WaitGroup
+		defer wg.Wait()
 
-	DescribeTable("Reservoir",
-		func(vv []float64, x float64) {
-			i := NewReservoir()
-			for _, v := range vv {
-				i.Update(v)
+		update := func() {
+			defer wg.Done()
+
+			for i := 0; i < 1000; i++ {
+				in.Update(1.0)
 			}
-			Expect(i.Snapshot().Mean()).To(BeNumerically("~", x, 0.1))
-		},
-		Entry("single", []float64{1}, 1.0),
-		Entry("a few", []float64{1, -10, 23}, 4.7),
-	)
+		}
+
+		wg.Add(1)
+		go update()
+		wg.Add(1)
+		go update()
+	}
 
 	ginkgo.It("should update counters", func() {
 		c := NewCounter()
@@ -37,11 +42,23 @@ var _ = ginkgo.Describe("Instruments", func() {
 		Expect(c.Snapshot()).To(Equal(4950.0))
 	})
 
+	ginkgo.It("should update counters atomically", func() {
+		c := NewCounter()
+		updateInParallel(c)
+		Expect(c.Snapshot()).To(Equal(2000.0))
+	})
+
 	ginkgo.It("should update gauges", func() {
 		g := NewGauge()
 		g.Update(7)
 		g.Update(12)
 		Expect(g.Snapshot()).To(Equal(12.0))
+	})
+
+	ginkgo.It("should update gauges atomically", func() {
+		g := NewGauge()
+		updateInParallel(g)
+		Expect(g.Snapshot()).To(Equal(1.0))
 	})
 
 	ginkgo.It("should update derives", func() {
@@ -50,6 +67,12 @@ var _ = ginkgo.Describe("Instruments", func() {
 		time.Sleep(10 * time.Millisecond)
 		d.Update(12)
 		Expect(d.Snapshot()).To(BeNumerically("~", 200, 50))
+	})
+
+	ginkgo.It("should update derives atomically", func() {
+		d := NewDerive(10)
+		updateInParallel(d)
+		Expect(d.Snapshot()).To(BeNumerically("<", 0.0))
 	})
 
 	ginkgo.It("should update rates", func() {
@@ -65,6 +88,30 @@ var _ = ginkgo.Describe("Instruments", func() {
 		Expect(r.Snapshot()).To(BeNumerically("~", 100000, 40000))
 	})
 
+	ginkgo.It("should update rates atomically", func() {
+		r := NewRate()
+		updateInParallel(r)
+		Expect(r.Snapshot()).To(BeNumerically(">", 0.0))
+	})
+
+	ginkgo.It("should update reservoirs", func() {
+		r := NewReservoir()
+		Expect(r.Snapshot().Count()).To(Equal(0))
+
+		r.Update(1)
+		Expect(r.Snapshot().Mean()).To(Equal(1.0))
+
+		r.Update(-10)
+		r.Update(23)
+		Expect(r.Snapshot().Mean()).To(BeNumerically("~", 4.67, 0.01))
+	})
+
+	ginkgo.It("should update reservoirs atomically", func() {
+		r := NewReservoir()
+		updateInParallel(r)
+		Expect(r.Snapshot().Mean()).To(BeNumerically("==", 1.0))
+	})
+
 	ginkgo.It("should update timers", func() {
 		t := NewTimer()
 		for i := 0; i < 100; i++ {
@@ -74,7 +121,6 @@ var _ = ginkgo.Describe("Instruments", func() {
 		Expect(s.Mean()).To(BeNumerically("~", 49.5, 0.01))
 		Expect(s.Quantile(0.75)).To(BeNumerically("~", 74.5, 0.01))
 	})
-
 })
 
 // --------------------------------------------------------------------

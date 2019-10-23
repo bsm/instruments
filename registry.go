@@ -7,6 +7,7 @@ import (
 	"time"
 )
 
+// Logger allows to plug in a logger.
 type Logger interface {
 	Printf(string, ...interface{})
 }
@@ -47,7 +48,7 @@ func New(flushInterval time.Duration, prefix string, tags ...string) *Registry {
 	return r
 }
 
-// New creates a new Registry without a background flush thread.
+// NewUnstarted creates a new Registry without a background flush thread.
 func NewUnstarted(prefix string, tags ...string) *Registry {
 	return &Registry{
 		instruments: make(map[string]interface{}),

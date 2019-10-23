@@ -16,6 +16,9 @@ var _ = ginkgo.Describe("MetricID", func() {
 
 		Entry("", "counter", []string{"a", "b"}, "counter|a,b"),
 		Entry("", "counter", []string{"b", "a"}, "counter|a,b"),
+		Entry("", "counter", []string{"x", "z", "y"}, "counter|x,y,z"),
+		Entry("", "counter", []string{"x", "y", "x"}, "counter|x,y"),
+		Entry("", "counter", []string{"", "b", "a"}, "counter|a,b"),
 		Entry("", "counter", nil, "counter"),
 		Entry("", "counter", []string{}, "counter"),
 	)
@@ -31,5 +34,4 @@ var _ = ginkgo.Describe("MetricID", func() {
 		Entry("", "|counter|a,b", "|counter", []string{"a", "b"}),
 		Entry("", "counter", "counter", nil),
 	)
-
 })

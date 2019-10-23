@@ -44,7 +44,7 @@ type Sample interface {
 
 // Counter holds a counter that can be incremented or decremented.
 type Counter struct {
-	count float64
+	value uint64
 }
 
 // NewCounter creates a new counter instrument.
@@ -54,12 +54,32 @@ func NewCounter() *Counter {
 
 // Update adds v to the counter.
 func (c *Counter) Update(v float64) {
-	addFloat64(&c.count, v)
+	for {
+		old := c.current()
+		new := old + v
+		if c.cas(old, new) {
+			return
+		}
+	}
 }
 
 // Snapshot returns the current value and reset the counter.
 func (c *Counter) Snapshot() float64 {
-	return swapFloat64(&c.count, 0)
+	for {
+		old := c.current()
+		new := 0.0
+		if c.cas(old, new) {
+			return old
+		}
+	}
+}
+
+func (c *Counter) current() float64 {
+	return math.Float64frombits(atomic.LoadUint64(&c.value))
+}
+
+func (c *Counter) cas(old, new float64) bool {
+	return atomic.CompareAndSwapUint64(&c.value, math.Float64bits(old), math.Float64bits(new))
 }
 
 // --------------------------------------------------------------------
