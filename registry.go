@@ -2,6 +2,7 @@ package instruments
 
 import (
 	"log"
+	"math"
 	"os"
 	"sync"
 	"time"
@@ -149,21 +150,30 @@ func (r *Registry) Flush() error {
 		tags = append(tags, rtags...)
 
 		switch inst := val.(type) {
+
 		case Discrete:
 			val := inst.Snapshot()
+			if math.IsNaN(val) || math.IsInf(val, 0) {
+				break
+			}
 			for _, rep := range reporters {
 				if err := rep.Discrete(name, tags, val); err != nil {
 					return err
 				}
 			}
+
 		case Sample:
 			val := inst.Snapshot()
+			if val.Count() == 0 {
+				break
+			}
 			for _, rep := range reporters {
 				if err := rep.Sample(name, tags, val); err != nil {
 					return err
 				}
 			}
 			releaseDistribution(val)
+
 		}
 	}
 
