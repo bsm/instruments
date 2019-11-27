@@ -1,6 +1,7 @@
 package instruments
 
 import (
+	"math"
 	"time"
 
 	"github.com/onsi/ginkgo"
@@ -120,6 +121,33 @@ var _ = ginkgo.Describe("Registry", func() {
 			"myapp.foo|a,b,e":   7,
 			"myapp.bar|a,b,f,g": 5,
 			"custom.foo|a,b":    11,
+		}))
+	})
+
+	ginkgo.It("should not flush empty metrics", func() {
+		sampleEmpty := NewReservoir() // Distribution example
+		subject.Register("|sample.empty", nil, sampleEmpty)
+
+		discreteNaN := NewGauge()
+		discreteNaN.Update(math.NaN())
+		subject.Register("|discrete.nan", nil, discreteNaN)
+
+		discretePosInf := NewGauge()
+		discretePosInf.Update(math.Inf(1))
+		subject.Register("|discrete.pos.inf", nil, discretePosInf)
+
+		discreteNegInf := NewGauge()
+		discreteNegInf.Update(math.Inf(-1))
+		subject.Register("|discrete.neg.inf", nil, discreteNegInf)
+
+		discreteZero := NewGauge()
+		discreteZero.Update(0)
+		subject.Register("|discrete.zero", nil, discreteZero)
+
+		Expect(subject.Flush()).To(Succeed())
+		Expect(reporter.Prepped).To(BeTrue())
+		Expect(reporter.Flushed).To(Equal(map[string]float64{
+			"discrete.zero|a,b": 0,
 		}))
 	})
 
