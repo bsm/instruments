@@ -1,6 +1,7 @@
 package datadog
 
 import (
+	"math"
 	"net/http/httptest"
 
 	"github.com/bsm/instruments"
@@ -93,6 +94,22 @@ var _ = ginkgo.Describe("Reporter", func() {
 		Expect(last.Body.Bytes()).To(MatchJSON(`{
 			"series":[
 				{"metric":"cnt2","points":[[1414141414,0]],"tags":["b"],"host":"test.host"}
+			]
+		}`))
+	})
+
+	ginkgo.It("should support reporter cycle", func() {
+		Expect(subject.Prep()).To(Succeed())
+		subject.Metric("cnt", nil, float32(math.NaN()))
+		subject.Metric("cnt", nil, float32(math.Inf(-1)))
+		subject.Metric("cnt", nil, float32(math.Inf(1)))
+		Expect(subject.Flush()).To(Succeed())
+
+		Expect(last.Body.Bytes()).To(MatchJSON(`{
+			"series":[
+				{"metric":"cnt","points":[[1414141414,0]],"tags":[],"host":"test.host"},
+				{"metric":"cnt","points":[[1414141414,0]],"tags":[],"host":"test.host"},
+				{"metric":"cnt","points":[[1414141414,0]],"tags":[],"host":"test.host"}
 			]
 		}`))
 	})

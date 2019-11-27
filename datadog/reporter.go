@@ -1,6 +1,7 @@
 package datadog
 
 import (
+	"math"
 	"os"
 	"time"
 
@@ -36,15 +37,17 @@ func New(apiKey string) *Reporter {
 	}
 }
 
-// Prepare implements instruments.Reporter
+// Prep implements instruments.Reporter
 func (r *Reporter) Prep() error {
 	r.timestamp = unixTime()
 	return nil
 }
 
-// Metric appends a new metric to the reporter. The value v must be either an
-// int64 or float64, otherwise an error is returned
+// Metric appends a new metric to the reporter.
 func (r *Reporter) Metric(name string, tags []string, v float32) {
+	if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
+		v = 0
+	}
 	r.metrics = append(r.metrics, Metric{
 		Name:   name,
 		Points: [][2]interface{}{[2]interface{}{r.timestamp, v}},
