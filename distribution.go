@@ -24,6 +24,23 @@ type Distribution interface {
 	Variance() float64
 }
 
+// NormalizedDistribution converts any NaN/Inf values to zeros.
+func NormalizedDistribution(d Distribution) Distribution {
+	return normalizedDistribution{d}
+}
+
+type normalizedDistribution struct {
+	d Distribution
+}
+
+func (d normalizedDistribution) Count() int                 { return d.d.Count() }
+func (d normalizedDistribution) Min() float64               { return normalizeFloat64(d.d.Min()) }
+func (d normalizedDistribution) Max() float64               { return normalizeFloat64(d.d.Max()) }
+func (d normalizedDistribution) Sum() float64               { return normalizeFloat64(d.d.Sum()) }
+func (d normalizedDistribution) Mean() float64              { return normalizeFloat64(d.d.Mean()) }
+func (d normalizedDistribution) Quantile(q float64) float64 { return normalizeFloat64(d.d.Quantile(q)) }
+func (d normalizedDistribution) Variance() float64          { return normalizeFloat64(d.d.Variance()) }
+
 // --------------------------------------------------------------------
 
 const defaultHistogramSize = 20

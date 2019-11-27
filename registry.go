@@ -150,14 +150,14 @@ func (r *Registry) Flush() error {
 
 		switch inst := val.(type) {
 		case Discrete:
-			val := inst.Snapshot()
+			val := normalizeFloat64(inst.Snapshot())
 			for _, rep := range reporters {
 				if err := rep.Discrete(name, tags, val); err != nil {
 					return err
 				}
 			}
 		case Sample:
-			val := inst.Snapshot()
+			val := NormalizedDistribution(inst.Snapshot())
 			for _, rep := range reporters {
 				if err := rep.Sample(name, tags, val); err != nil {
 					return err

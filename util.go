@@ -1,6 +1,7 @@
 package instruments
 
 import (
+	"math"
 	"strings"
 )
 
@@ -60,4 +61,12 @@ func findMinString(slice []string, greaterThan string) string {
 		}
 	}
 	return min
+}
+
+// normalizeFloat64 converts NaN/Inf value to 0 or returns it as is otherwise.
+func normalizeFloat64(v float64) float64 {
+	if math.IsNaN(v) || math.IsInf(v, 0) {
+		return 0
+	}
+	return v
 }
