@@ -2,7 +2,19 @@ package instruments
 
 import (
 	"strings"
+	"sync"
 )
+
+var bufferPool sync.Pool
+
+func pooledBuffer(minCap int) []byte {
+	if v := bufferPool.Get(); v != nil {
+		if p := v.([]byte); cap(p) <= minCap {
+			return p[:0]
+		}
+	}
+	return make([]byte, 0, minCap)
+}
 
 // MetricID takes a name and tags and generates a consistent
 // metric identifier
@@ -18,8 +30,9 @@ func MetricID(name string, tags []string) string {
 		}
 	}
 
-	buf := make([]byte, len(name), size)
-	copy(buf, name)
+	buf := pooledBuffer(size)
+	buf = append(buf, name...)
+	defer bufferPool.Put(buf)
 
 	for pos, tag := 0, ""; pos < len(tags); pos++ {
 		if next := findMinString(tags, tag); next > tag {
@@ -35,11 +48,12 @@ func MetricID(name string, tags []string) string {
 		}
 		buf = append(buf, tag...)
 	}
+
 	return string(buf)
 }
 
-// SplitMetricID takes a metric ID ans splits it into
-// name and tags
+// SplitMetricID takes a metric ID and splits it into
+// name and tags.
 func SplitMetricID(metricID string) (name string, tags []string) {
 	if metricID == "" {
 		return "", nil

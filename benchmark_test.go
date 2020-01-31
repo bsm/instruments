@@ -103,8 +103,11 @@ func BenchmarkRegistry_Reset(b *testing.B) {
 }
 
 func BenchmarkMetricID(b *testing.B) {
+	tags := []string{"foo", "bar", "baz", "doh"}
+
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		instruments.MetricID("metric", []string{"foo", "bar", "baz", "doh"})
+		instruments.MetricID("metric", tags)
 	}
 }
 
