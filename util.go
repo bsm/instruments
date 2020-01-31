@@ -9,7 +9,7 @@ var bufferPool sync.Pool
 
 func pooledBuffer(minCap int) []byte {
 	if v := bufferPool.Get(); v != nil {
-		if p := v.([]byte); cap(p) <= minCap {
+		if p := *(v.(*[]byte)); cap(p) <= minCap {
 			return p[:0]
 		}
 	}
@@ -32,7 +32,7 @@ func MetricID(name string, tags []string) string {
 
 	buf := pooledBuffer(size)
 	buf = append(buf, name...)
-	defer bufferPool.Put(buf)
+	defer bufferPool.Put(&buf)
 
 	for pos, tag := 0, ""; pos < len(tags); pos++ {
 		if next := findMinString(tags, tag); next > tag {
