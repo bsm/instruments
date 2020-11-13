@@ -27,7 +27,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/bsm/histogram"
+	"github.com/bsm/histogram/v3"
 )
 
 // Discrete represents a single value instrument.

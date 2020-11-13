@@ -3,7 +3,7 @@ package instruments
 import (
 	"sync"
 
-	"github.com/bsm/histogram"
+	"github.com/bsm/histogram/v3"
 )
 
 // Distribution is returned by Sample snapshots
