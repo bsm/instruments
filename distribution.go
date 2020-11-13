@@ -22,6 +22,10 @@ type Distribution interface {
 	Quantile(q float64) float64
 	// Variance returns the variance
 	Variance() float64
+	// NumBins number of bins/buckets.
+	NumBins() int
+	// Bin returns the bin/bucket value and weight at index.
+	Bin(index int) (value, weight float64)
 }
 
 // --------------------------------------------------------------------
