@@ -3,9 +3,9 @@ package datadog
 import (
 	"net/http/httptest"
 
+	"github.com/bsm/ginkgo"
+	. "github.com/bsm/gomega"
 	"github.com/bsm/instruments"
-	"github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 )
 
 var _ = ginkgo.Describe("Reporter", func() {
