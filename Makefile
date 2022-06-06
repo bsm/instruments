@@ -12,5 +12,5 @@ bench:
 bench-race:
 	go test ./... -run=NONE -bench=. -race
 
-staticcheck:
-	staticcheck ./...
+lint:
+	golangci-lint run
